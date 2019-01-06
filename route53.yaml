@@ -1,0 +1,58 @@
+Description: >
+    Creating Router 53 DNS Entries for MySql DB and Internal Load Balancer.
+
+Parameters:
+
+    EnvironmentName:
+        Description: An environment name that will be prefixed to resource names
+        Type: String
+
+    VPC:
+        Type: AWS::EC2::VPC::Id
+        Description: Choose which VPC the Application Load Balancer should be deployed to
+
+    InternalLoadBalancerUrl:
+        Type: String
+        Description: Amazon given Internal LB URL	
+    WPDBEndpoint:
+        Type: String
+        Description: MySql Endpoint
+
+Resources:
+    ##Hosted Zone
+    HostedZone: 
+      Type: "AWS::Route53::HostedZone"
+      Properties: 
+        HostedZoneConfig: 
+          Comment: "WP Internal hosted Zone"
+        Name: "wp.com"
+        VPCs: 
+          - 
+            VPCId: !Ref VPC
+            VPCRegion: !Ref "AWS::Region"
+     
+        HostedZoneTags: 
+          - 
+            Key: "wordpress"
+            Value: "private"
+
+
+    DNSRecord:
+        Type: AWS::Route53::RecordSetGroup
+        Properties:
+           HostedZoneId: !Ref 'HostedZone'
+           Comment: DNS name for my instance.
+           RecordSets:
+           - Name: ilb.wp.com
+             Type: CNAME
+             TTL: '900'
+             ResourceRecords:
+               - !Ref InternalLoadBalancerUrl
+           - Name: wpdb.wp.com
+             Type: CNAME
+             TTL: '900'
+             ResourceRecords:
+               - !Ref WPDBEndpoint
+    
+
+

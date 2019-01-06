@@ -1,0 +1,48 @@
+Description: >
+    This template deploys an EC2  the provided VPC and subnets
+    using an Auto Scaling Group
+
+Parameters:
+
+    EnvironmentName:
+        Description: An environment name that will be prefixed to resource names
+        Type: String
+
+    InstanceType:
+        Description: Which instance type should we use to build the ECS cluster?
+        Default: t2.micro
+        Type: String
+
+    VPC:
+        Description: Choose which VPC this ECS cluster should be deployed to
+        Type: AWS::EC2::VPC::Id
+        
+
+    SubnetId:
+        Description: Choose which subnets this ECS cluster should be deployed to
+        Type: String
+        
+             
+    SecurityGroup:
+        Description: Select the Security Group to use for the ECS cluster hosts
+        Type: AWS::EC2::SecurityGroup::Id
+
+Mappings:
+   AWSRegionToAMI:
+         us-west-2:
+            AMI: ami-d2f489aa
+
+Resources:
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: awskey
+      SubnetId: !Ref SubnetId
+      InstanceType: !Ref InstanceType
+      SecurityGroupIds:
+                - !Ref SecurityGroup
+      ImageId:  !FindInMap [AWSRegionToAMI, !Ref "AWS::Region", AMI]
+      Tags:
+                - Key: Name
+                  Value: Login Public EC2 host
+

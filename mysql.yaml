@@ -1,0 +1,97 @@
+Description: >
+    This template deploys an MYSQl DBInstance.
+    We create them it a seperate nested template, so it can be referenced by all of the other nested templates.
+
+Parameters:
+
+    Subnet1:
+        Description: Choose which subnet the Application Load Balancer should be deployed to
+        Type: AWS::EC2::Subnet::Id
+    Subnet2:
+        Description: Choose which subnet the Application Load Balancer should be deployed to
+        Type: AWS::EC2::Subnet::Id	
+    SecurityGroup:
+        Description: Select the Security Group to apply to the Application Load Balancer
+        Type: AWS::EC2::SecurityGroup::Id
+    VPC:
+        Type: AWS::EC2::VPC::Id
+        Description: Choose which VPC the Application Load Balancer should be deployed to
+    DBName:
+        Default: wpdb
+        Description: The database name
+        Type: String
+
+    DBUsername:
+        Default: admin
+        NoEcho: 'true'
+        Description: The database admin account username
+        Type: String
+
+    DBPassword:
+        Default: wpdbadmin
+        NoEcho: 'true'
+        Description: The database admin account password
+        Type: String
+
+    DBClass:
+        Default: db.t2.micro
+        Description: Database instance class
+        Type: String
+
+    DBAllocatedStorage:
+        Default: '1'
+        Description: The size of the database (Gb)
+        Type: Number
+        MinValue: '1'
+        MaxValue: '2'
+    DBPort:
+        Default: 3306
+        Description: DB port
+        Type: String
+
+Resources:
+    DBSubnetGroup: 
+        Type: "AWS::RDS::DBSubnetGroup"
+        Properties: 
+          DBSubnetGroupDescription: "description"
+          SubnetIds:
+             - !Ref Subnet1		 
+             - !Ref Subnet2
+
+    DBSecurityGroup:
+        Type: AWS::RDS::DBSecurityGroup
+        Properties:
+          GroupDescription: Open database for access
+          EC2VpcId: !Ref VPC
+          DBSecurityGroupIngress:
+             - EC2SecurityGroupId: !Ref SecurityGroup
+
+    WPDB: 
+        Type: "AWS::RDS::DBInstance"
+        Properties: 
+          DBSubnetGroupName: !Ref DBSubnetGroup
+          DBInstanceClass: "db.t2.micro"
+          AllocatedStorage: "20"
+          Engine: "MySQL"
+          EngineVersion: "5.6.39"
+          Port: !Ref DBPort
+          DBName: !Ref DBName
+          DBInstanceIdentifier: !Ref DBName
+          MasterUsername: !Ref DBUsername
+          MasterUserPassword: !Ref DBPassword
+          DBSecurityGroups:
+             - !Ref DBSecurityGroup
+          MasterUsername: !Ref DBUsername
+          MasterUserPassword: !Ref DBPassword
+
+Outputs:
+  JDBCConnectionString:
+    Description: JDBC connection string for database
+    Value:
+      Fn::Join: [ "", [ "jdbc:mysql://", { "Fn::GetAtt": [ "WPDB", "Endpoint.Address" ] }, ":", { "Fn::GetAtt": [ "WPDB", "Endpoint.Port" ] }, "/", { "Ref": "DBName" } ] ]
+  WPDBEndpoint:
+      Description: This is Endpoint will be used in Router53 to create Alias
+      Value: { "Fn::GetAtt": ["WPDB", "Endpoint.Address"] }
+      
+      
+      
